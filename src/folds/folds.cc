@@ -3,173 +3,21 @@
 #include "../base/boxconfig.hh"
 #include "../base/fourier.hh"
 #include "../base/fft.hh"
-#include "../cgal/interpol.hh"
+#include "../misc/interpol.hh"
+
 
 #include "dmt.hh"
+#include "../misc/hessian.hh"
 
 using namespace System;
 
-template <typename Point>
-class Hessian_3
+#include <iomanip>
+inline std::string time_string(double b)
 {
-	System::ptr<System::BoxConfig<3>> box;
-
-	static inline unsigned idx(unsigned i, unsigned j)
-	{
-		return (i >= j  ? (i * (i + 1)) / 2 + j
-				: (j * (j + 1)) / 2 + i);
-	}
-
-	public:
-		std::vector<Array<double>> 		    d_ij_data;
-		std::vector<Misc::Interpol::Linear<Array<double>,3>> d_ij;
-
-		Hessian_3(System::ptr<System::BoxConfig<3>> box_, 
-			System::Array<double> potential);
-
-		double eigenvalue(unsigned k, mVector<double, 3> const &x) const;
-};
-
-template <unsigned R> double symdet(std::vector<double> const &M);
-
-template <>
-inline double symdet<2>(std::vector<double> const &M)
-{
-	return M[0] * M[2] - M[1] * M[1];
+	std::ostringstream ss;
+	ss << std::setfill('0') << std::setw(5) << (int)round(b * 10000);
+	return ss.str();
 }
-
-template <>
-inline double symdet<3>(std::vector<double> const &M)
-{
-	return M[0] * M[2] * M[5]
-		- M[0] * M[4] * M[4]
-		- M[2] * M[3] * M[3]
-		- M[5] * M[1] * M[1]
-		+ 2 * M[1] * M[3] * M[4];
-}
-
-template <unsigned R> double symsqtr(std::vector<double> const &M);
-
-template <>
-inline double symsqtr<2>(std::vector<double> const &M)
-{
-	return M[0]*M[0] + 2 * M[1]*M[1] + M[2]*M[2];
-}
-
-template <>
-inline double symsqtr<3>(std::vector<double> const &M)
-{
-	return M[0]*M[0] + 2 * M[1]*M[1] + M[2]*M[2]
-		+ 2 * M[3]*M[3] + 2 * M[4]*M[4] + M[5]*M[5];
-}
-
-template <typename Point>
-Hessian_3<Point>::Hessian_3(ptr<BoxConfig<3>> box_, Array<double> potential):
-	box(box_)
-{
-	for (unsigned i = 0; i < 6; ++i)
-	{
-		d_ij_data.push_back(Array<double>(box->size()));
-		d_ij.push_back(Misc::Interpol::Linear<Array<double>,3>(box, d_ij_data[i]));
-	}
-
-	Array<Fourier::complex64> psi_f(box->size());
-	Fourier::Transform fft(std::vector<int>(3, box->N()));
-	auto K = Fourier::kspace<3>(box->N(), box->N());
-	copy(potential, fft.in); 
-	fft.forward();
-	copy(fft.out, psi_f);
-
-	unsigned o = 0;
-	double s = box->size() / box->scale2();
-	for (unsigned i = 0; i < 3; ++i)
-	{
-		for (unsigned j = 0; j <= i; ++j, ++o)
-		{
-			auto F = Fourier::Fourier<3>::derivative(i) 
-				* Fourier::Fourier<3>::derivative(j);
-			transform(psi_f, K, fft.in, Fourier::Fourier<3>::filter(F));
-			fft.backward();
-			transform(fft.out, d_ij_data[o], Fourier::real_part(s));
-		}
-	}
-}
-
-template <typename Point>
-double Hessian_3<Point>::eigenvalue(unsigned k, mVector<double, 3> const &x) const
-{
-	// copy matrix
-	std::vector<double> f(6);
-	for (unsigned i = 0; i < 6; ++i)
-		f[i] = d_ij[i](x);
-
-	// compute trace and traceless part
-	double q = 0;
-	for (unsigned i = 0; i < 3; ++i)
-		q += f[idx(i,i)] / 3;
-	for (unsigned i = 0; i < 3; ++i)
-		f[idx(i,i)] -= q;
-
-	// M = p*f + q*Id
-	double p = sqrt(symsqtr<3>(f)/6);
-	for (unsigned i = 0; i < 6; ++i)
-		f[i] /= p;
-
-	double F = acos(symdet<3>(f)/2)/3;
-	std::vector<double> lambda(3);
-	lambda[0] = q + 2 * p * cos(F);
-	lambda[1] = q + 2 * p * cos(F + 2./3 * M_PI);
-	lambda[2] = q + 2 * p * cos(F + 4./3 * M_PI);
-	std::sort(lambda.begin(), lambda.end());
-	return lambda[k];
-}
-
-/*
-void Hessian_3::compute_eigenvalues()
-{
-	for (unsigned i = 0; i < 3; ++i)
-		lambda.push_back(Array<double>(box->size()));
-
-	std::vector<double> f(6);
-
-	for (size_t x = 0; x < box->size(); ++x)
-	{
-		// copy matrix
-		for (unsigned i = 0; i < 6; ++i)
-			f[i] = d_ij[i][x];
-
-		// compute trace and traceless part
-		double q = 0;
-		for (unsigned i = 0; i < 3; ++i)
-			q += f[idx(i,i)] / 3;
-		for (unsigned i = 0; i < 3; ++i)
-			f[idx(i,i)] -= q;
-
-		// M = p*f + q*Id
-		double p = sqrt(symsqtr<3>(f)/6);
-		for (unsigned i = 0; i < 6; ++i)
-			f[i] /= p;
-
-		double F = acos(symdet<3>(f)/2)/3;
-		lambda[0][x] = q + 2 * p * cos(F);
-		lambda[1][x] = q + 2 * p * cos(F + 2./3 * M_PI);
-		lambda[2][x] = q + 2 * p * cos(F + 4./3 * M_PI);
-	}
-}
-
-void Hessian_3::sort_eigenvalues()
-{
-	std::vector<double> l(3);
-	for (size_t x = 0; x < box->size(); ++x)
-	{
-		for (unsigned i = 0; i < 3; ++i)
-			l[i] = lambda[i][x];
-		std::sort(l.begin(), l.end());
-		for (unsigned i = 0; i < 3; ++i)
-			lambda[i][x] = l[i];	
-	}
-}
-*/
 
 void command_folds(int argc, char **argv)
 {
@@ -206,25 +54,27 @@ void command_folds(int argc, char **argv)
 		H.get<unsigned>("mbits"), H.get<double>("size"));
 	double b = args.get<double>("time");
 
-	Hessian_3<DMT::Folds::Point> hessian(box, potential);
-	//hessian.compute_eigenvalues();
-	//hessian.sort_eigenvalues();
+	DMT::Hessian_3 hessian(box, potential);
 
 	unsigned bits = H.get<unsigned>("mbits");
 	typedef Map<Array<mVector<double, 3>>, double> AI;
 	auto za_data = load_from_file<mVector<double, 3>>(fi, "displacement");
 	Misc::Interpol::Spline<Array<mVector<double,3>>,3> za(box->bits(), za_data);
+	std::string tstr = time_string(b);
 
-	DMT::Folds::run(box, [&hessian, b] (DMT::Folds::Point const &q)
+	for (unsigned l = 0; l < 3; ++l)
 	{
-		mVector<double, 3> Q; Q[0] = q[0]; Q[1] = q[1]; Q[2] = q[2];
-		return hessian.eigenvalue(0, Q) + 1./b;
-	}, args.get<double>("res"), [&za, b] (DMT::Folds::Point const &q)
-	{
-		mVector<double, 3> Q; Q[0] = q[0]; Q[1] = q[1]; Q[2] = q[2];
-		mVector<double, 3> X = Q + za(Q) * b;
-		return DMT::Folds::Point(X[0], X[1], X[2]);
-	}, args["id"]+"-folds.off");
+		DMT::Folds::run(box, [&hessian, b, l] (DMT::Folds::Point const &q)
+		{
+			mVector<double, 3> Q; Q[0] = q[0]; Q[1] = q[1]; Q[2] = q[2];
+			return hessian.eigenvalue(l, Q) + 1./b;
+		}, args.get<double>("res"), [&za, b] (DMT::Folds::Point const &q)
+		{
+			mVector<double, 3> Q; Q[0] = q[0]; Q[1] = q[1]; Q[2] = q[2];
+			mVector<double, 3> X = Q + za(Q) * b;
+			return DMT::Folds::Point(X[0], X[1], X[2]);
+		}, Misc::format(args["id"], ".l", l, ".folds.", tstr, ".off"));
+	}
 
 }
 
