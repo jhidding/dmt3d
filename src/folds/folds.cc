@@ -7,7 +7,7 @@
 
 
 #include "dmt.hh"
-#include "../misc/hessian.hh"
+#include "../dmt/hessian.hh"
 
 using namespace System;
 

@@ -33,6 +33,10 @@ namespace System
 			{ return d_box.loc(v); }
 			std::vector<typename cVector<R>::C> const &sq() const
 			{ return d_box.sq; }
+			std::vector<typename cVector<R>::C> const &dx() const
+			{ return d_box.dx; }
+			std::vector<typename cVector<R>::C> const &dx2() const
+			{ return d_box.dx2; }
 	};
 
 	/// calculate the binary exponent i * 2^shift
