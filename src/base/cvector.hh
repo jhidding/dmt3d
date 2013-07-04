@@ -155,6 +155,11 @@ namespace System
 				return C(*this, n);
 			}
 
+			inline C zero() const
+			{
+				return C(*this, 0);
+			}
+
 			template <typename T>
 			size_t operator()(mVector<T, R> const &a) const
 			{
@@ -168,6 +173,12 @@ namespace System
 			size_t unit_vector(unsigned i) const
 			{
 				return C(*this, size_t(1) << (b * i));
+			}
+
+			inline
+			size_t unit(unsigned i) const
+			{
+				return 1U << (b * i);
 			}
 
 			inline
@@ -267,6 +278,22 @@ namespace System
 				size_t n = 0;
 				for (unsigned j = 0; j < R; ++j)
 					n |= ilg[i(r, j)] << (b * j);
+				return n;
+			}
+
+			inline size_t double_grid(size_t r) const
+			{
+				size_t n = 0;
+				for (unsigned j = 0; j < R; ++j)
+					n |= idx(r, j) << 1;
+				return n;
+			}
+
+			inline uint8_t count_odd(size_t r) const
+			{
+				uint8_t n = 0;
+				for (unsigned j = 0; j < R; ++j)
+					n += idx(r, j) & unit(j);
 				return n;
 			}
 	};

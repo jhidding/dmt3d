@@ -16,37 +16,45 @@
 namespace DMT
 {
 	template <typename GT, typename Surface>
-	class Mesher_traits: public CGAL::Implicit_surface_oracle_3<GT, Surface>
+	class Mesher_traits: public CGAL::Surface_mesher::Implicit_surface_oracle_3<GT, Surface>
 	{
-		typedef CGAL::Implicit_surface_oracle_3<GT, Surface> Base;
-
-		typedef typename GT::Point_3	Point_3;
-		typedef typename GT::Segment_3	Segment_3;
-		typedef typename GT::Ray_3		Ray_3;
-		typedef typename GT::Line_3		Line_3;
-
-		typedef Surface Surface_3;
-		typedef CGAL::Object Object;
+		typedef CGAL::Surface_mesher::Implicit_surface_oracle_3<GT, Surface> Base;
 
 		public:
+			typedef typename GT::Point_3	Point_3;
+			typedef typename GT::Segment_3	Segment_3;
+			typedef typename GT::Ray_3		Ray_3;
+			typedef typename GT::Line_3		Line_3;
+
+			typedef Surface Surface_3;
+			typedef CGAL::Object Object;
+
 			class Intersect_3: public Base::Intersect_3
 			{
-				Object operator()(const Surface_3& surface, const Ray_3& r)
-				{
-					Object o = Base::operator()(surface, r);
-				}
+				public:
+					Intersect_3(typename Base::Intersect_3 const &I):
+						Base::Intersect_3(I) {}
 
-				Object operator()(const Surface_3& surface, const Line_3& l)
-				{
-					Object o = Base::operator()(surface, l);
-				}
+					Object operator()(const Surface_3& surface, const Ray_3& r)
+					{
+						Object o = Base::Intersect_3::operator()(surface, r);
+						return o;
+					}
 
-				Object operator()(const Surface_3& surface, Segment_3 s)
-				{
-					Object o = Base::operator()(surface, s);
-				}
+					Object operator()(const Surface_3& surface, const Line_3& l)
+					{
+						Object o = Base::Intersect_3::operator()(surface, l);
+						return o;
+					}
+
+					Object operator()(const Surface_3& surface, const Segment_3& s)
+					{
+						Object o = Base::Intersect_3::operator()(surface, s);
+						return o;
+					}
 			};
 
+			/*
 			class Construct_initial_points
 			{
 				public:
@@ -56,19 +64,22 @@ namespace DMT
 						OutputIteratorPoints out, 
 						int n = 20) // WARNING: why 20?
 					{
-						// use morse-theory to find extrema
+						// later: use morse-theory to find extrema
 					}
 			};
+			*/
 
 			Intersect_3 intersect_3_object() const
 			{
 				return Intersect_3(Base::intersect_3_object());
 			}
 
+			/*
 			Construct_initial_points construct_initial_points_object() const
 			{
 				return Construct_initial_points();	
 			}
+			*/
 	};
 
 	template <typename GT, typename Func>
@@ -85,7 +96,6 @@ namespace DMT
 			ImplicitA3(A a, B b):
 				Base(a, b)
 			{}
-
 	};
 
 	class Cusps

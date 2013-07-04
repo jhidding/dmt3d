@@ -36,7 +36,7 @@ void Cusps::run(System::ptr<BoxConfig<3>> box, System::ptr<Hessian_3> hessian,
 	CGAL::Surface_mesh_default_criteria_3<Tr> criteria(15., 1./res, 1./res);
 
 	// meshing surface
-	CGAL::make_surface_mesh(c2t3, surface, criteria, CGAL::Manifold_with_boundary_tag(), 1000);
+	CGAL::make_surface_mesh(c2t3, surface, criteria, CGAL::Non_manifold_tag(), 1000);
 
 	std::ofstream out(filename);
 	CGAL::output_surface_facets_to_off (out, c2t3);
