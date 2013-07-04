@@ -11,8 +11,8 @@ void Cusps::run(System::ptr<BoxConfig<3>> box, System::ptr<Hessian_3> hessian,
 	C2t3 c2t3(tr);    // 2D-complex in 3D-Delaunay triangulation
 
 	// bounding box
-	double L = box->L();
-	double scale = box->scale();
+	//double L = box->L();
+	//double scale = box->scale();
 	unsigned N = box->N();
 	GT::Sphere_3 bounding_sphere(CGAL::ORIGIN, 0.25 * N*N);
 

@@ -56,8 +56,8 @@ void command_folds(int argc, char **argv)
 
 	DMT::Hessian_3 hessian(box, potential);
 
-	unsigned bits = H.get<unsigned>("mbits");
-	typedef Map<Array<mVector<double, 3>>, double> AI;
+	//unsigned bits = H.get<unsigned>("mbits");
+	//typedef Map<Array<mVector<double, 3>>, double> AI;
 	auto za_data = load_from_file<mVector<double, 3>>(fi, "displacement");
 	Misc::Interpol::Spline<Array<mVector<double,3>>,3> za(box->bits(), za_data);
 	std::string tstr = time_string(b);
