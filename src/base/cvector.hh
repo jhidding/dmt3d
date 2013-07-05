@@ -9,6 +9,7 @@
 #include "misc.hh"
 
 #include <iostream>
+#include <cstdint>
 
 namespace System
 {
@@ -155,6 +156,14 @@ namespace System
 				return C(*this, n);
 			}
 
+			mVector<int,R> c2m(size_t r) const
+			{
+				mVector<int, R> a;
+				for (unsigned j = 0; j < R; ++j)
+					a[j] = i(r, j);
+				return a;
+			}
+
 			inline C zero() const
 			{
 				return C(*this, 0);
@@ -230,6 +239,15 @@ namespace System
 				return n;
 			}
 
+			inline
+			size_t demote(size_t r, unsigned bn) const
+			{
+				size_t n = 0;
+				for (unsigned i = 0; i < R; ++i)
+					n |= idx(r, i) >> (b - bn) * i;
+				return n;
+			}
+
 			inline 
 			size_t add(size_t r, size_t s) const
 			{
@@ -285,7 +303,23 @@ namespace System
 			{
 				size_t n = 0;
 				for (unsigned j = 0; j < R; ++j)
-					n |= idx(r, j) << 1;
+					n |= idx(r, j) << (1 + j);
+				return n;
+			}
+
+			inline size_t half_grid(size_t r) const
+			{
+				size_t n = 0;
+				for (unsigned j = 0; j < R; ++j)
+					n |= (r & (mask(j) - 1)) >> (1 + j);
+				return n;
+			}
+
+			inline size_t add_half(size_t r, size_t s) const
+			{
+				size_t n = 0;
+				for (unsigned j = 0; j < R; ++j)
+					n |= ((idx(r, j) + idx(s, j)) & (mask(j) - 1)) >> (1 + j);
 				return n;
 			}
 
@@ -293,7 +327,7 @@ namespace System
 			{
 				uint8_t n = 0;
 				for (unsigned j = 0; j < R; ++j)
-					n += idx(r, j) & unit(j);
+					n += i(r, j) & 1;
 				return n;
 			}
 	};
