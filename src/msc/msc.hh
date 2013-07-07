@@ -46,19 +46,19 @@ namespace DMT
 					// edges point to one of 4 faces
 					// faces point to one of 2 cells
 
-		enum cell_tag { UNPAIRED, PAIRED, CRITICAL, 
+		enum cell_tag { UNPAIRED, SOURCE, TARGET, CRITICAL, 
 			MINIMUM, TUNNEL, BRIDGE, MAXIMUM };
 
 		Array<uint8_t> 	tag;
 
 		std::priority_queue<Cell> Q;
 
-		uint8_t rank(size_t i);
+		uint8_t rank(size_t i) const;
 					// the amount of odd values in the index vector
 					// gives the type of cell:
 					//  0 - node | 1 - edge | 2 - face | 3 - cell
 
-		double value(size_t i);
+		double value(size_t i) const;
 					// the value is determined by taking the maximum
 					// of the involved vertices.
 
@@ -72,7 +72,8 @@ namespace DMT
 					// finds the cofacets of a cell, and pushes them
 					// onto the queue, if they are unpaired.
 
-		uint8_t unpaired_faces(size_t i);
+		uint8_t unpaired_facets(size_t i);
+		uint8_t unpaired_cofacets(size_t i);
 					// counts the number of unpaired faces to a cell
 					// if it is one, the cell is ready to be paired
 
@@ -81,32 +82,12 @@ namespace DMT
 					// to have one unpaired face; the function returns
 					// the index of its newly paired counterpart.
 
+		mVector<int, R> make_vector(size_t i) const;
+
 		public:
 			MSC(unsigned bits, Array<double> data_);
 			void generate_gradient();
-			void print_critical_points(std::ostream &out)
-			{
-				for (size_t x = 0; x < single_box.size(); ++x)
-				{
-					if (single_box.i(x, 0) == 0) out << std::endl;
-					out << data[x] << " ";
-				}
-
-				out << "\n\n\n";
-
-				for (size_t x = 0; x < double_box.size(); ++x)
-				{
-					out << double_box.c2m(x) << " " << double_box.c2m(V[x]) << "\n";
-				}
-
-				out << "\n\n\n";
-
-				for (size_t x = 0; x < double_box.size(); ++x)
-				{
-					if (tag[x] == CRITICAL)
-						out << double_box.c2m(x) << " " << int(rank(x)) << std::endl;
-				}
-			}
+			void print_critical_points(std::ostream &out) const;
 	};
 	// }}}1
 
@@ -128,7 +109,7 @@ namespace DMT
 		bool operator<(Cell const &o) const
 		{
 			if (value == o.value) 
-				return rank > o.rank;
+				return rank < o.rank;
 
 			return (value > o.value);
 		}
@@ -155,7 +136,7 @@ namespace DMT
 
 	// MSC::rank {{{2
 	template <unsigned R>
-	inline uint8_t MSC<R>::rank(size_t i)
+	inline uint8_t MSC<R>::rank(size_t i) const
 	{
 		return double_box.count_odd(i);
 	}
@@ -163,7 +144,7 @@ namespace DMT
 
 	// MSC::value {{{2
 	template <unsigned R>
-	inline double MSC<R>::value(size_t i)
+	inline double MSC<R>::value(size_t i) const
 	{
 		size_t x = double_box.half_grid(i);
 
@@ -207,7 +188,11 @@ namespace DMT
 		size_t j;
 		for (unsigned k = 0; k < R; ++k)
 		{
-			if (not (double_box.i(i, k) & 1u))
+			// cofacets are the cells of dimension d+1
+			// that border the ones of dimension d;
+			// we are looking for the +/- 1 odd extensions
+			// of even numbered indices in the double grid
+			if (not (double_box.i(i, k) & 1U))
 			{
 				j = double_box.add(i, double_box.dx[k]);
 				if (tag[j] == UNPAIRED)
@@ -253,12 +238,32 @@ namespace DMT
 
 	// MSC::unpaired_faces {{{2
 	template <unsigned R>
-	uint8_t MSC<R>::unpaired_faces(size_t i)
+	uint8_t MSC<R>::unpaired_facets(size_t i)
 	{
-		unsigned n = 0;
+		uint8_t n = 0;
 		for (unsigned k = 0; k < R; ++k)
 		{
-			if (double_box.i(i, k) & 1u)
+			if (double_box.i(i, k) & 1U)
+			{
+				if (tag[double_box.add(i, double_box.dx[k])] == UNPAIRED)
+					++n;
+
+				if (tag[double_box.sub(i, double_box.dx[k])] == UNPAIRED)
+					++n;
+			}
+		}
+		return n;
+	}
+	// }}}2
+
+	// MSC::unpaired_cofacet {{{2
+	template <unsigned R>
+	uint8_t MSC<R>::unpaired_cofacets(size_t i)
+	{
+		uint8_t n = 0;
+		for (unsigned k = 0; k < R; ++k)
+		{
+			if (not (double_box.i(i, k) & 1U))
 			{
 				if (tag[double_box.add(i, double_box.dx[k])] == UNPAIRED)
 					++n;
@@ -272,6 +277,8 @@ namespace DMT
 	// }}}2
 
 	// MSC::make_pair {{{2
+	// d-cell i is being paired with its single remaining
+	// unpaired coface.
 	template <unsigned R>
 	size_t MSC<R>::make_pair(size_t i)
 	{
@@ -280,7 +287,7 @@ namespace DMT
 		bool paired = false;
 		for (unsigned k = 0; k < R; ++k)
 		{
-			if (double_box.i(i, k) & 1u)
+			if (double_box.i(i, k) & 1U)
 			{
 				j = double_box.add(i, double_box.dx[k]);
 				if (tag[j] == UNPAIRED) 
@@ -288,7 +295,7 @@ namespace DMT
 					if (paired)
 					{
 						std::cerr << "trying to pair, but multiple faces are still unpaired\n";
-						throw;
+						throw "error!";
 					}
 					paired = true;
 					q = j;
@@ -300,7 +307,7 @@ namespace DMT
 					if (paired)
 					{
 						std::cerr << "trying to pair, but multiple faces are still unpaired\n";
-						throw;
+						throw "error!";
 					}
 					paired = true;
 					q = j;
@@ -311,13 +318,14 @@ namespace DMT
 		if (not paired)
 		{
 			std::cerr << "trying to pair, but no faces are unpaired\n";
-			throw;
+			throw "error!";
 		}
 
 		V[q] = i;
-		tag[i] = PAIRED; tag[q] = PAIRED;
+		V[i] = q;
+		tag[i] = TARGET; tag[q] = SOURCE;
 
-		return j;
+		return q;
 	}
 	// }}}2
 	
@@ -335,10 +343,11 @@ namespace DMT
 
 			std::cout << double_box.c2m(c.i) << " " << cnt++ << " " << c.value << std::endl;
 
-			uint8_t z = unpaired_faces(c.i);
+			uint8_t z = unpaired_facets(c.i);
 			if (z == 1)
 			{
 				size_t j = make_pair(c.i);
+				std::cout << double_box.c2m(j) << " " << cnt++ << " " << value(j) << std::endl;
 				push_cofacets(c.i);
 				push_cofacets(j);
 			}
@@ -350,6 +359,45 @@ namespace DMT
 			}
 		}
 		std::cout << "\n\n";
+	}
+	// }}}2
+
+	// MSC::print_critical_points {{{2
+	template <unsigned R>
+	mVector<int, R> MSC<R>::make_vector(size_t i) const
+	{
+		auto v = double_box.c2m(double_box.sub(V[i], i));
+		int N = double_box.extent();
+		for (unsigned k = 0; k < R; ++k)
+			if (v[k] > N/2)
+				v[k] -= N;
+		return v;
+	}
+
+	template <unsigned R>
+	void MSC<R>::print_critical_points(std::ostream &out) const
+	{
+		for (size_t x = 0; x < single_box.size(); ++x)
+		{
+			if (single_box.i(x, 0) == 0) out << std::endl;
+			out << data[x] << " ";
+		}
+
+		out << "\n\n\n";
+
+		for (size_t x = 0; x < double_box.size(); ++x)
+		{
+			if ((tag[x] == SOURCE) and (V[x] <= double_box.size()))
+				out << double_box.c2m(x) << " " << make_vector(x) << "\n";
+		}
+
+		out << "\n\n\n";
+
+		for (size_t x = 0; x < double_box.size(); ++x)
+		{
+			if (tag[x] == CRITICAL)
+				out << double_box.c2m(x) << " " << int(rank(x)) << std::endl;
+		}
 	}
 	// }}}2
 	// }}}1

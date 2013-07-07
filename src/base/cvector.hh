@@ -311,7 +311,7 @@ namespace System
 			{
 				size_t n = 0;
 				for (unsigned j = 0; j < R; ++j)
-					n |= (r & (mask(j) - 1)) >> (1 + j);
+					n |= (r & (mask(j) - unit(j))) >> (1 + j);
 				return n;
 			}
 
@@ -319,7 +319,7 @@ namespace System
 			{
 				size_t n = 0;
 				for (unsigned j = 0; j < R; ++j)
-					n |= ((idx(r, j) + idx(s, j)) & (mask(j) - 1)) >> (1 + j);
+					n |= ((idx(r, j) + idx(s, j)) & (mask(j) - unit(j))) >> (1 + j);
 				return n;
 			}
 
