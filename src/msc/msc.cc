@@ -2,6 +2,7 @@
 #include "../base/format.hh"
 #include "../base/boxconfig.hh"
 
+#include "../misc/gradient.hh"
 #include "msc.hh"
 
 using namespace System;
@@ -28,13 +29,32 @@ void command_msc(int argc, char **argv)
 	std::ifstream fi(Misc::format(args["id"], ".init.conan"));
 	Header H(fi); History I(fi);
 	unsigned bits = H.get<unsigned>("mbits");
+	double L = H.get<double>("size");
 	Array<double> density = load_from_file<double>(fi, "density");
 
 	switch (H.get<unsigned>("dim"))
 	{
-		case 2: { DMT::MSC<2> msc(bits, density);
+		case 2: {
+			auto box = make_ptr<BoxConfig<2>>(bits, L);
+			Misc::Gradient<2> G(box, density);
+			for (size_t i = 0; i < box->size(); ++i)
+			{
+				if (G.root_potentially_within_cell(i))
+					std::cout << box->box().c2m(i) << std::endl;
+			}
+
+			std::cout << "\n\n\n";
+			DMT::MSC<2> msc(bits, density);
 			msc.generate_gradient();
-			msc.print_critical_points(std::cout); } break;
+			msc.print_critical_points(std::cout); 
+			
+			std::cout << "\n\n\n";
+			for (size_t i = 0; i < box->size(); ++i)
+			{
+				std::cout << box->box().c2m(i) << " " << G[i] << " " << G[i][0] * G[i][1] << std::endl;
+			}
+		} break;
+
 		case 3: { DMT::MSC<3> msc(bits, density);
 			msc.generate_gradient();
 			msc.print_critical_points(std::cout); } break;

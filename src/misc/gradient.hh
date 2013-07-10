@@ -9,27 +9,63 @@ namespace Misc
 	{
 		typedef System::mVector<double, R> Vector;
 
-		System::ptr<System::BoxConfig<R>> box;
 		System::Array<double> data;
+		System::ptr<System::cVector<R>> b;
 
 		public:
 			typedef Vector value_type;
 
 			Gradient(System::ptr<System::BoxConfig<R>> box_, System::Array<double> data_):
-				box(box_), data(data_) {}
+				data(data_), b(new System::cVector<R>(box_->bits())) {}
 
-			inline double fd(typename System::cVector<R>::C const &i, unsigned k) const
+			inline double fdi(size_t i, unsigned k) const
 			{
-				return data[i - box->dx2()[k]] / 12. - 2. * data[i - box->dx()[k]] / 3.
-					+ 2. * data[i + box->dx()[k]] / 3. - data[i + box->dx2()[k]] / 12.;
+				return data[b->sub(i, b->dx2[k])] / 12. - 2. * data[b->sub(i, b->dx[k])] / 3.
+					+ 2. * data[b->add(i, b->dx[k])] / 3. - data[b->add(i, b->dx2[k])] / 12.;
+			}
+
+			inline Vector grad(size_t i) const
+			{
+				Vector v; 
+				for (unsigned k = 0; k < R; ++k)
+					v[k] = fdi(i, k);
+				return v;
+			}
+
+			bool root_potentially_within_cell(size_t i) const
+			{
+				// true if within the cell all components of
+				// the gradient change sign.
+				std::vector<bool> test(R, false);
+				int cnt = 0;
+
+				Vector v1 = grad(i);
+				for (auto &dx : b->sq)
+				{
+					Vector v2 = grad(b->add(i, dx));
+					for (unsigned k = 0; k < R; ++k)
+					{
+						if (v1[k] * v2[k] < 0. and not test[k])
+						{
+							test[k] = true;
+							++cnt;
+						}
+
+						if (cnt == R) return true;
+					}
+				}
+
+				return false;
+			}
+
+			Vector find_root(size_t i) const
+			{
+				return Vector();
 			}
 
 			Vector operator[](size_t i) const
 			{
-				Vector v; 
-				for (unsigned k = 0; k < R; ++k)
-					v[k] = fd(box->box()[i], k);
-				return v;
+				return grad(i);
 			}
 	};
 }
