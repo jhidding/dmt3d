@@ -3,6 +3,7 @@
 #include "../base/mvector.hh"
 #include "../base/mdrange.hh"
 #include "../base/cvector.hh"
+#include "../base/progress.hh"
 
 #include <iostream>
 #include <cstdint>
@@ -83,6 +84,8 @@ namespace DMT
 					// the index of its newly paired counterpart.
 
 		mVector<int, R> make_vector(size_t i) const;
+
+		System::ptr<Misc::ProgressBar> pb;
 
 		public:
 			MSC(unsigned bits, Array<double> data_);
@@ -227,9 +230,10 @@ namespace DMT
 
 			if (x == i)
 			{
-				std::cerr << single_box.c2m(i) << ": minimal\n";
+				// std::cerr << single_box.c2m(i) << ": minimal\n";
 				x = single_box.double_grid(i);
 				tag[x] = CRITICAL;
+				if (pb) pb->tic();
 				push_cofacets(x);
 			}
 		}
@@ -324,6 +328,7 @@ namespace DMT
 		V[q] = i;
 		V[i] = q;
 		tag[i] = TARGET; tag[q] = SOURCE;
+		if (pb) { pb->tic(); pb->tic(); }
 
 		return q;
 	}
@@ -333,6 +338,8 @@ namespace DMT
 	template <unsigned R>
 	void MSC<R>::generate_gradient()
 	{
+		pb.reset(new Misc::ProgressBar(double_box.size(), "finding critical points"));
+
 		push_minima();
 		size_t cnt = 0;
 		while (not Q.empty())
@@ -341,13 +348,13 @@ namespace DMT
 			if (tag[c.i] != UNPAIRED)
 				continue;
 
-			std::cout << double_box.c2m(c.i) << " " << cnt++ << " " << c.value << std::endl;
+			//std::cout << double_box.c2m(c.i) << " " << cnt++ << " " << c.value << std::endl;
 
 			uint8_t z = unpaired_facets(c.i);
 			if (z == 1)
 			{
 				size_t j = make_pair(c.i);
-				std::cout << double_box.c2m(j) << " " << cnt++ << " " << value(j) << std::endl;
+				//std::cout << double_box.c2m(j) << " " << cnt++ << " " << value(j) << std::endl;
 				push_cofacets(c.i);
 				push_cofacets(j);
 			}
@@ -356,9 +363,12 @@ namespace DMT
 			{
 				push_cofacets(c.i);
 				tag[c.i] = CRITICAL;
+				if (pb) pb->tic();
 			}
 		}
-		std::cout << "\n\n";
+
+		if (pb) pb->finish();
+		//std::cout << "\n\n";
 	}
 	// }}}2
 
@@ -377,7 +387,7 @@ namespace DMT
 	template <unsigned R>
 	void MSC<R>::print_critical_points(std::ostream &out) const
 	{
-		for (size_t x = 0; x < single_box.size(); ++x)
+	/*	for (size_t x = 0; x < single_box.size(); ++x)
 		{
 			if (single_box.i(x, 0) == 0) out << std::endl;
 			out << data[x] << " ";
@@ -392,6 +402,7 @@ namespace DMT
 		}
 
 		out << "\n\n\n";
+		*/
 
 		for (size_t x = 0; x < double_box.size(); ++x)
 		{
