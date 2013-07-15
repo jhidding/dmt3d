@@ -17,21 +17,21 @@ Test::Unit PLY_test(
 
 #endif
 
-template <> std::string PLY::Header::Element::type<int8_t>::name = "char";
-template <> std::string PLY::Header::Element::type<uint8_t>::name = "uchar";
-template <> std::string PLY::Header::Element::type<int16_t>::name = "short";
-template <> std::string PLY::Header::Element::type<uint16_t>::name = "ushort";	
-template <> std::string PLY::Header::Element::type<int32_t>::name = "int";
-template <> std::string PLY::Header::Element::type<uint32_t>::name = "uint";
-template <> std::string PLY::Header::Element::type<float>::name = "float";
-template <> std::string PLY::Header::Element::type<double>::name = "double";
+template <> std::string PLY::type<int8_t>::name = "char";
+template <> std::string PLY::type<uint8_t>::name = "uchar";
+template <> std::string PLY::type<int16_t>::name = "short";
+template <> std::string PLY::type<uint16_t>::name = "ushort";	
+template <> std::string PLY::type<int32_t>::name = "int";
+template <> std::string PLY::type<uint32_t>::name = "uint";
+template <> std::string PLY::type<float>::name = "float";
+template <> std::string PLY::type<double>::name = "double";
 
-std::ostream &operator<<(std::ostream &out, PLY::Header::Element::Property const &property)
+std::ostream &operator<<(std::ostream &out, PLY::Property const &property)
 {
 	return out << "property " << property.type_expression() << " " << property.name() << std::endl;
 }
 
-std::ostream &operator<<(std::ostream &out, PLY::Header::Element const &element)
+std::ostream &operator<<(std::ostream &out, PLY::Element const &element)
 {
 	out << "element " << element.name() << " " << element.count() << std::endl;
 

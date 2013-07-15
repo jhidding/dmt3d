@@ -1,51 +1,101 @@
 #pragma once
 #include <string>
 #include <iostream>
+#include <utility>
 
 namespace Misc
 {
+	// PLY {{{1
 	class PLY
 	{
 		using System::ptr;
 
 		class Header;
-		class Element;
-		class Property
-		{};
+		using Header::Property;
 
-		template <typename T>
-		class Scalar: public Property
-		{
-			public:
-				using Property::Property;
-		}
+		class Data;
+		using Data::Item;
 
-		template <typename T, typename length_type = uint8_t>
-		class List: public Property
-		{
-			public:
-				using Property::Property;
-		};
-
-		Header 						m_header;
-		std::vector<ptr<Element>>	m_elements;
+		Header 			m_header;
+		Data			m_data;
 
 		public:
 			template <typename ...Args>
 			void add_element(std::string const &name, Args &&...properties)
 			{
 				m_header.add_element(name);
+				add_properties(std::forward<Args>(args)...);
 			}
 
-			template <typename T, typename ...Args>
-			void add_properties(
+			void put_data(Datum const &datum)
+			{
+				m_data.write(item);
+				m_data.next_item();
+				m_header.add_item();
+			}
+
+			template <typename ...Args>
+			void put_data(Datum const &datum, Args &&...args)
+			{
+				m_data.write(item);
+				m_data.next_datum();
+				put_data(std::forward<Args>(args)...);
+			}
+
+		private:
+			void add_properties(Property const &prop)
+			{
+				m_header.add_property(prop);
+			}
+
+			template <typename ...Args>
+			void add_properties(Property const &prop, Args &&...args)
+			{
+				m_header.add_property(prop);
+				add_properties(std::forward<Args>(args)...);
+			}
 	};
+	// }}}1 PLY
 
 	// PLY::Header {{{1
 	// PLY::Header {{{2
 	class PLY::Header
 	{
+		template <typename T>
+		struct type { static std::string name; }
+
 		public:
+			class Property
+			{
+				std::string m_name;
+
+				public:
+					Property(std::string const &name_): m_name(name_) {}
+					std::string const &name() const { return m_name; }
+					virtual std::string type_expression() const = 0;
+			};
+
+			template <typename T>
+			class Scalar: public Property
+			{
+				public:
+					using Property::Property;
+
+					std::string type_expression() const
+					{ return type<T>::name; }
+			};
+
+			template <typename T, typename length_type = uint8_t>
+			class List: public Property
+			{
+				public:
+					using Property::Property;
+
+					std::string type_expression() const
+					{ return "list " + type<length_type>::name + " " 
+						+ type<T>::name; }
+			};
+
 			class Element;
 
 			enum Format { ASCII, BINARY };
@@ -69,16 +119,9 @@ namespace Misc
 				m_elements.push_back(new Element(name));
 			}
 
-			template <typename T>
-			void add_scalar(std::string const &name)
+			void add_property(Property const &property)
 			{
-				m_elements.back()->add_scalar<T>(name);
-			}
-
-			template <typename T, typename length_type = uint8_t>
-			void add_list(std::string const &name)
-			{
-				m_elements.back()->add_list<T, length_type>(name);
+				m_elements.back()->add_property(property);
 			}
 
 			void add_item()
@@ -89,42 +132,8 @@ namespace Misc
 	// }}}2 PLY::Header
 	
 	// PLY::Header::Element {{{2
-	class Element
+	class PLY::Header::Element
 	{
-		template <typename T>
-		struct type { static std::string name; }
-
-		class Property
-		{
-			std::string m_name;
-
-			public:
-				Property(std::string const &name_): m_name(name_) {}
-				std::string const &name() const { return m_name; }
-				std::string type_expression() const = 0;
-		};
-
-		template <typename T>
-		class Scalar: public Property
-		{
-			public:
-				using Property::Property;
-
-				std::string type_expression() const
-				{ return type<T>::name; }
-		};
-
-		template <typename T, typename length_type = uint8_t>
-		class List: public Property
-		{
-			public:
-				using Property::Property;
-
-				std::string type_expression() const
-				{ return "list " + type<length_type>::name + " " 
-					+ type<T>::name; }
-		};
-
 		std::string 						m_name;
 		size_t								m_count;
 		std::vector<ptr<Property>> 			m_properties;
@@ -153,6 +162,34 @@ namespace Misc
 	};
 	// }}}2 PLY::Header::Element
 	// }}}1 PLY::Header
+
+	// PLY::Data {{{1
+	class PLY::Data
+	{
+		public:
+			class Datum;
+
+			template <typename T>
+			class Scalar: Datum
+			{
+				T	m_value;
+
+				public:
+					write(
+			};
+
+			template <typename T>
+			class List: Datum
+			{
+				std::vector<T> m_value;
+
+				public:
+			};
+
+			template 
+			void write_value(Datum const &datum) = 0;
+	};
+	// }}}1
 }
 
 // vim:ts=4:sw=4:fdm=marker
