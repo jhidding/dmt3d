@@ -57,7 +57,7 @@ void command_a3(int argc, char **argv)
 	{
 		std::cerr << " " << k << " ";
 		DMT::Cusps::run(box, hessian, k, args.get<double>("res"),
-			Misc::format(args["id"], ".l", k, ".cusps.off"));
+			Misc::format(args["id"], ".l", k, ".cusps.ply"));
 	}
 	std::cerr << " [ done ]\n";
 }

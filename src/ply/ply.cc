@@ -40,21 +40,28 @@ Test::Unit PLY_test(
 		PLY::scalar_type<uint8_t>("blue")
 	);
 	for (auto p : grid)
+	{
+		double v = p.norm();
+		auto q = p/v;
+		double phase = atan2(q[0], q[1]);
+		if (phase < 0) phase += 2*M_PI;
+		if (phase > 2*M_PI) phase -= 2*M_PI;
+
 		ply.put_data(
 			PLY::scalar<float>(p[0]), 
 			PLY::scalar<float>(p[1]), 
 			PLY::scalar<float>(func(p)),
-			PLY::scalar<uint8_t>(255),
-			PLY::scalar<uint8_t>(255),
-			PLY::scalar<uint8_t>(0)
+			PLY::scalar<uint8_t>((phase > M_PI ? 
+				0 : 1.0 - 2 * fabs(phase/M_PI - 0.5))*255),
+			PLY::scalar<uint8_t>(((phase > (5./3 * M_PI)) or (phase < (2./3*M_PI)) ? 
+				0 : 1.0 - 2 * fabs(phase/M_PI - 1.1667))*255),
+			PLY::scalar<uint8_t>(((phase > (1./3 * M_PI)) and (phase < (4./3*M_PI)) ? 
+				0 : 1.0 - 2 * fabs((phase < (1./3 * M_PI) ? phase + 2*M_PI : phase)/M_PI - 1.8333))*255)
 		);
+	}
 
 	ply.add_element("face",
-		PLY::list_type<unsigned>("vertex_index"),
-		PLY::scalar_type<uint8_t>("red"),
-		PLY::scalar_type<uint8_t>("green"),
-		PLY::scalar_type<uint8_t>("blue")
-	);
+		PLY::list_type<unsigned>("vertex_index"));
 	mVector<int,2> dx({0, 1}), dy({1, 0});
 	for (auto p : MdRange<2>(mVector<int,2>(N-1)))
 	{
@@ -62,19 +69,11 @@ Test::Unit PLY_test(
 		v1.push_back(p[0] +     N * p[1]);
 		v1.push_back(p[0] + 1 + N * p[1]);
 		v1.push_back(p[0] + 1 + N * p[1] + N);
-		ply.put_data(PLY::list<unsigned>(v1),
-			PLY::scalar<uint8_t>(255),
-			PLY::scalar<uint8_t>(0),
-			PLY::scalar<uint8_t>(0)
-		);
+		ply.put_data(PLY::list<unsigned>(v1));
 		v2.push_back(p[0] + 1 + N * p[1] + N);
 		v2.push_back(p[0] +     N * p[1] + N);
 		v2.push_back(p[0] +     N * p[1]);
-		ply.put_data(PLY::list<unsigned>(v2),
-			PLY::scalar<uint8_t>(255),
-			PLY::scalar<uint8_t>(0),
-			PLY::scalar<uint8_t>(0)
-		);
+		ply.put_data(PLY::list<unsigned>(v2));
 	}
 
 	ply.write("ply_test.ply", PLY::ASCII);

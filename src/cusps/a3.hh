@@ -38,7 +38,16 @@ namespace DMT
 					Object operator()(const Surface_3& surface, const Ray_3& r)
 					{
 						Object o = Base::Intersect_3::operator()(surface, r);
-						return o;
+						Point_3 p;
+
+						if (CGAL::assign(p, o))
+						{
+
+						}
+						else
+						{
+							return o;
+						}
 					}
 
 					Object operator()(const Surface_3& surface, const Line_3& l)
@@ -86,15 +95,31 @@ namespace DMT
 	class ImplicitA3: public CGAL::Implicit_surface_3<GT, Func>
 	{
 		typedef CGAL::Implicit_surface_3<GT, Func> Base;
+		typedef typename GT::Point_3 Point_3;
+		typedef typename GT::Vector_3 Vector_3;
 
 		public:
 			typedef Mesher_traits<GT, ImplicitA3> Surface_mesher_traits_3;
+			typedef std::function<double (Point_3 const &)> ScalarField;
+			typedef std::function<Vector_3 (Point_3 const &)> VectorField;
 
-			//using CGAL::Implicit_surface_3<GT,Func>::Implicit_surface_3;	
-			
-			template <typename A, typename B>
-			ImplicitA3(A a, B b):
-				Base(a, b)
+			template <typename GradL, typename EigenV>
+			static ScalarField dot_product(
+					GradL grad_lambda, EigenV eigen_vector)
+			{
+				return [grad_lambda, eigen_vector] (Point_3 const &X) -> double
+				{
+					Vector_3 a = grad_lambda(X), b = eigen_vector(X);
+					return a * b;
+				};
+			};
+
+			VectorField l, e;
+
+			template <typename GradL, typename EigenV, typename BB>
+			ImplicitA3(GradL grad_lambda, EigenV eigen_vector, BB bb):
+				Base(dot_product(grad_lambda, eigen_vector), bb),
+				l(grad_lambda), e(eigen_vector)
 			{}
 	};
 
@@ -108,6 +133,8 @@ namespace DMT
 
 		public:
 		typedef GT::Point_3				Point;
+		typedef GT::Point_3				Point_3;
+		typedef GT::Vector_3			Vector_3;
 
 		private:
 		typedef CGFunc<double, Point>			Func;

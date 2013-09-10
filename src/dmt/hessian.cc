@@ -68,12 +68,17 @@ Hessian_3::Hessian_3(ptr<BoxConfig<3>> box_, Array<double> potential):
 	}
 }
 
+Vector_3
+
+
 void Hessian_3::compute_eigenvalues()
 {
 	for (unsigned k = 0; k < 3; ++k)
 	{
 		d_lambda_data.push_back(Array<double>(box->size()));
-		d_ev.push_back(Array<mVector<double,3>>(box->size()));
+		d_ev1.push_back(Array<Vector_3>(box->size()));
+		d_ev2.push_back(Array<Vector_3>(box->size()));
+		d_ev3.push_back(Array<Vector_3>(box->size()));
 		d_lambda.push_back(Misc::Interpol::Linear<Array<double>,3>(box, d_lambda_data[k]));
 	}
 
@@ -108,12 +113,22 @@ void Hessian_3::compute_eigenvalues()
 		
 		for (unsigned k = 0; k < 3; ++k)
 		{
-			mVector<double, 3> e;
-			e[0] = (l[k] - d[2])*d[3] + d[4]*d[1];
-			e[1] = (l[k] - d[0])*d[4] + d[3]*d[1];
-			e[2] = (l[k] - d[0])*(l[k] - d[1]) - d[0]*d[0];
+			Vector_3 e1(
+				(l[k] - d[2])*d[3] + d[4]*d[1],
+				(l[k] - d[0])*d[4] + d[3]*d[1],
+				(l[k] - d[0])*(l[k] - d[1]) - d[0]*d[0]);
+			Vector_3 e2(
+				(l[k] - d[2])*(l[k] - d[4]) - d[2]*d[2],
+				(l[k] - d[5])*d[1] + d[3]*d[4],
+				(l[k] - d[2])*d[3] + d[1]*d[4]);
+			Vector_3 e3(
+				(l[k] - d[5])*d[1] + d[4]*d[3],
+				(l[k] - d[5])*(l[k] - d[3]) - d[5]*d[5],
+				(l[k] - d[0])*d[4] + d[1]*d[3]);
 
-			d_ev[k][x] = e;
+			d_ev1[k][x] = e1;
+			d_ev2[k][x] = e2;
+			d_ev3[k][x] = e3;
 			d_lambda_data[k][x] = l[k];
 		}
 	}
