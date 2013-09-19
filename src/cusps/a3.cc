@@ -21,7 +21,7 @@ std::function<Vector_3 (Point_3 const &)> to_cgal(Function f)
 	};
 }
 
-void Cusps::run(System::ptr<BoxConfig<3>> box, System::ptr<Hessian_3> hessian, 
+void Cusps::run(System::ptr<BoxConfig<3>> box, System::ptr<Hessian_3<>> hessian, 
 		unsigned k, double res, std::string const &filename)
 {
 	Tr tr;            // 3D-Delaunay triangulation

@@ -48,7 +48,7 @@ void command_a3(int argc, char **argv)
 		H.get<unsigned>("mbits"), H.get<double>("size"));
 
 	std::cerr << "computing eigenvalues ... ";
-	auto hessian = System::make_ptr<DMT::Hessian_3>(box, potential);
+	auto hessian = System::make_ptr<DMT::Hessian_3<>>(box, potential);
 	hessian->compute_eigenvalues();
 	std::cerr << " [ done ]\n";
 

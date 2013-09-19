@@ -54,7 +54,7 @@ void command_folds(int argc, char **argv)
 		H.get<unsigned>("mbits"), H.get<double>("size"));
 	double b = args.get<double>("time");
 
-	DMT::Hessian_3 hessian(box, potential);
+	DMT::Hessian_3<> hessian(box, potential);
 
 	//unsigned bits = H.get<unsigned>("mbits");
 	//typedef Map<Array<mVector<double, 3>>, double> AI;

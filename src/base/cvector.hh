@@ -164,6 +164,14 @@ namespace System
 				return a;
 			}
 
+			mVector<double,R> dvec(size_t r) const
+			{
+				mVector<double, R> a;
+				for (unsigned j = 0; j < R; ++j)
+					a[j] = i(r, j);
+				return a;
+			}
+
 			inline C zero() const
 			{
 				return C(*this, 0);

@@ -143,7 +143,7 @@ namespace DMT
 
 		public:
 			static void run(System::ptr<System::BoxConfig<3>> box, 
-					System::ptr<Hessian_3> hessian,
+					System::ptr<Hessian_3<>> hessian,
 					unsigned k, double res, std::string const &filename);
 	};
 }

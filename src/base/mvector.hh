@@ -38,6 +38,11 @@ namespace System
 				std::copy(lst.begin(), lst.end(), p);
 			}
 
+			mVector(T a, T b, T c)
+			{
+				p[0] = a; p[1] = b; p[2] = c;
+			}
+
 			template <typename U>
 			mVector<U, R> as() const
 			{
